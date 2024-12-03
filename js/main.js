@@ -166,3 +166,83 @@ effectSlider.noUiSlider.on('update', (values) => {
 
 // Применить настройки по умолчанию
 applyEffect(EFFECTS.none);
+
+const hashtagInput = document.querySelector('.text__hashtags'); // Поле ввода хэш-тегов
+const MAX_HASHTAGS = 5;
+const MAX_HASHTAG_LENGTH = 20;
+
+// Функция валидации хэш-тегов
+const validateHashtags = () => {
+  const hashtags = hashtagInput.value
+    .trim()
+    .toLowerCase() // Нечувствительность к регистру
+    .split(/\s+/) // Разделение по пробелам
+    .filter(Boolean); // Удаление пустых строк
+
+  const errors = [];
+
+  if (hashtags.length > MAX_HASHTAGS) {
+    errors.push(`Нельзя указать больше ${MAX_HASHTAGS} хэш-тегов.`);
+  }
+
+  hashtags.forEach((tag, index) => {
+    if (!/^#[a-zA-Z0-9]+$/.test(tag)) {
+      errors.push(`Хэш-тег "${tag}" должен начинаться с "#" и состоять из букв и цифр.`);
+    } else if (tag.length > MAX_HASHTAG_LENGTH) {
+      errors.push(`Хэш-тег "${tag}" не может быть длиннее ${MAX_HASHTAG_LENGTH} символов.`);
+    } else if (tag === '#') {
+      errors.push('Хэш-тег не может состоять только из "#".');
+    }
+
+    // Проверка на дублирование
+    if (hashtags.indexOf(tag) !== index) {
+      errors.push(`Хэш-тег "${tag}" используется несколько раз.`);
+    }
+  });
+
+  return errors;
+};
+
+// Обработчик ввода
+hashtagInput.addEventListener('input', () => {
+  const errors = validateHashtags();
+
+  if (errors.length > 0) {
+    hashtagInput.setCustomValidity(errors.join('\n'));
+  } else {
+    hashtagInput.setCustomValidity('');
+  }
+
+  hashtagInput.reportValidity();
+});
+
+// Блокировка закрытия формы по Esc
+hashtagInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    event.stopPropagation();
+  }
+});
+
+const commentInput = document.querySelector('.text__description'); // Поле ввода комментария
+const MAX_COMMENT_LENGTH = 140;
+
+// Обработчик ввода
+commentInput.addEventListener('input', () => {
+  const comment = commentInput.value.trim();
+
+  if (comment.length > MAX_COMMENT_LENGTH) {
+    commentInput.setCustomValidity(`Длина комментария не может превышать ${MAX_COMMENT_LENGTH} символов.`);
+  } else {
+    commentInput.setCustomValidity('');
+  }
+
+  commentInput.reportValidity();
+});
+
+// Блокировка закрытия формы по Esc
+commentInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    event.stopPropagation();
+  }
+});
+
