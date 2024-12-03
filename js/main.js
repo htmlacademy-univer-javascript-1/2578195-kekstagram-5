@@ -166,83 +166,144 @@ effectSlider.noUiSlider.on('update', (values) => {
 
 // Применить настройки по умолчанию
 applyEffect(EFFECTS.none);
+const hashtagInput = document.querySelector('.text__hashtags');
+const commentInput = document.querySelector('.text__description');
 
-const hashtagInput = document.querySelector('.text__hashtags'); // Поле ввода хэш-тегов
-const MAX_HASHTAGS = 5;
-const MAX_HASHTAG_LENGTH = 20;
+const SETTINGS = {
+  MAX_HASHTAGS: 5,
+  MAX_HASHTAG_LENGTH: 20,
+  MAX_COMMENT_LENGTH: 140,
+};
 
-// Функция валидации хэш-тегов
+// Вспомогательная функция для валидации
+const validateField = (inputElement, errors) => {
+  if (errors.length > 0) {
+    inputElement.setCustomValidity(errors.join('\n'));
+  } else {
+    inputElement.setCustomValidity('');
+  }
+  inputElement.reportValidity();
+};
+
+// Функция для валидации хэш-тегов
 const validateHashtags = () => {
-  const hashtags = hashtagInput.value
-    .trim()
-    .toLowerCase() // Нечувствительность к регистру
-    .split(/\s+/) // Разделение по пробелам
-    .filter(Boolean); // Удаление пустых строк
-
+  const hashtags = hashtagInput.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const errors = [];
 
-  if (hashtags.length > MAX_HASHTAGS) {
-    errors.push(`Нельзя указать больше ${MAX_HASHTAGS} хэш-тегов.`);
+  if (hashtags.length > SETTINGS.MAX_HASHTAGS) {
+    errors.push(`Нельзя указать больше ${SETTINGS.MAX_HASHTAGS} хэш-тегов.`);
   }
 
-  hashtags.forEach((tag, index) => {
+  const uniqueTags = new Set(hashtags);
+  if (uniqueTags.size !== hashtags.length) {
+    errors.push('Хэш-теги должны быть уникальными.');
+  }
+
+  hashtags.forEach((tag) => {
     if (!/^#[a-zA-Z0-9]+$/.test(tag)) {
-      errors.push(`Хэш-тег "${tag}" должен начинаться с "#" и состоять из букв и цифр.`);
-    } else if (tag.length > MAX_HASHTAG_LENGTH) {
-      errors.push(`Хэш-тег "${tag}" не может быть длиннее ${MAX_HASHTAG_LENGTH} символов.`);
+      errors.push(`Хэш-тег "${tag}" должен начинаться с "#" и состоять только из букв и цифр.`);
+    } else if (tag.length > SETTINGS.MAX_HASHTAG_LENGTH) {
+      errors.push(`Хэш-тег "${tag}" не может быть длиннее ${SETTINGS.MAX_HASHTAG_LENGTH} символов.`);
     } else if (tag === '#') {
       errors.push('Хэш-тег не может состоять только из "#".');
-    }
-
-    // Проверка на дублирование
-    if (hashtags.indexOf(tag) !== index) {
-      errors.push(`Хэш-тег "${tag}" используется несколько раз.`);
     }
   });
 
   return errors;
 };
 
-// Обработчик ввода
+// Обработка ввода хэш-тегов
 hashtagInput.addEventListener('input', () => {
   const errors = validateHashtags();
-
-  if (errors.length > 0) {
-    hashtagInput.setCustomValidity(errors.join('\n'));
-  } else {
-    hashtagInput.setCustomValidity('');
-  }
-
-  hashtagInput.reportValidity();
+  validateField(hashtagInput, errors);
 });
 
-// Блокировка закрытия формы по Esc
-hashtagInput.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') {
-    event.stopPropagation();
-  }
-});
-
-const commentInput = document.querySelector('.text__description'); // Поле ввода комментария
-const MAX_COMMENT_LENGTH = 140;
-
-// Обработчик ввода
+// Валидация комментария
 commentInput.addEventListener('input', () => {
   const comment = commentInput.value.trim();
-
-  if (comment.length > MAX_COMMENT_LENGTH) {
-    commentInput.setCustomValidity(`Длина комментария не может превышать ${MAX_COMMENT_LENGTH} символов.`);
-  } else {
-    commentInput.setCustomValidity('');
+  const errors = [];
+  if (comment.length > SETTINGS.MAX_COMMENT_LENGTH) {
+    errors.push(`Комментарий не должен превышать ${SETTINGS.MAX_COMMENT_LENGTH} символов.`);
   }
-
-  commentInput.reportValidity();
+  validateField(commentInput, errors);
 });
 
-// Блокировка закрытия формы по Esc
-commentInput.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') {
-    event.stopPropagation();
-  }
+// Блокировка закрытия формы по Escape
+const preventFormCloseOnEscape = (inputElement) => {
+  inputElement.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+    }
+  });
+};
+
+preventFormCloseOnEscape(hashtagInput);
+preventFormCloseOnEscape(commentInput);
+
+
+const form = document.querySelector('#upload-select-image'); // Форма загрузки изображения
+const submitButton = document.querySelector('#upload-submit'); // Кнопка отправки
+const URL = 'https://29.javascript.htmlacademy.pro/kekstagram'; // URL для отправки данных
+
+// Функция блокировки кнопки
+const toggleSubmitButton = (isDisabled) => {
+  submitButton.disabled = isDisabled;
+  submitButton.textContent = isDisabled ? 'Загрузка...' : 'Опубликовать';
+};
+
+// Функция для отображения сообщений из шаблона
+const showMessage = (templateId, onClose = null) => {
+  const template = document.querySelector(`#${templateId}`).content.cloneNode(true);
+  const message = template.querySelector(`.${templateId}`);
+
+  document.body.appendChild(message);
+
+  const closeButton = message.querySelector(`.${templateId}__button`);
+  const closeMessage = () => {
+    document.body.removeChild(message);
+
+    if (onClose) {
+      onClose();
+    }
+  };
+
+  closeButton.addEventListener('click', closeMessage);
+
+  const onEscPress = (event) => {
+    if (event.key === 'Escape') {
+      closeMessage();
+      document.removeEventListener('keydown', onEscPress);
+    }
+  };
+
+  document.addEventListener('keydown', onEscPress);
+};
+
+// Обработчик отправки формы
+form.addEventListener('submit', (event) => {
+  event.preventDefault(); // Предотвращаем стандартную отправку формы
+
+  const formData = new FormData(form); // Собираем данные формы
+  toggleSubmitButton(true); // Блокируем кнопку
+
+  fetch(URL, {
+    method: 'POST',
+    body: formData,
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Ошибка отправки данных');
+      }
+      return response.json();
+    })
+    .then(() => {
+      showMessage('success', () => form.reset()); // Показ сообщения об успешной загрузке и сброс формы
+    })
+    .catch(() => {
+      showMessage('error'); // Показ сообщения об ошибке
+    })
+    .finally(() => {
+      toggleSubmitButton(false); // Разблокируем кнопку
+    });
 });
 
